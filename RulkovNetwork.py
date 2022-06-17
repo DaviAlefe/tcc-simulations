@@ -47,16 +47,21 @@ class RulkovNetwork:
     
     # The method save_nodes saves the nodes of the network in a sqlite file in the same directory, associated with the current time variable.
     def save_nodes(self):
-        # The connection to a sqlite file in a directory named after the simulation_id is opened.
-        conn = sqlite3.connect(f'{self.simulation_id}/data.sqlite')
+        # The connection to a sqlite file in a directory named after the simulation_id is opened or created if doesnt exist.
+        conn = sqlite3.connect(f'simulations_data/{self.simulation_id}.db')
         # The cursor is created.
         c = conn.cursor()
         # The table variables is created if it does not exist.
-        c.execute('''CREATE TABLE IF NOT EXISTS variables''')
-        # The nodes are concatenated into an array called data, with the time as the first column and repeated for each node.
-        data = jax.numpy.concatenate((self.t*jax.numpy.ones((self.n, 1)), self.nodes), axis=1)
+        c.execute('''CREATE TABLE IF NOT EXISTS Variables (
+            neuron_idx INTEGER,
+            t INTEGER,
+            x REAL,
+            y REAL
+        )''')
+        # The nodes are concatenated into an array called data, with the array indices as neuron_ids in first column, time as the second column and repeated for each node.
+        data = jax.numpy.concatenate((jax.numpy.arange(self.n).reshape((self.n, 1)), self.t*jax.numpy.ones((self.n, 1)), self.nodes), axis=1)
         # The array data is then saved in the table variables of the sqlite file, in columns x, y, t.
-        c.execute('''INSERT INTO variables (t, x, y) VALUES (?, ?, ?)''', data)
+        c.execute('''INSERT INTO Variables (neuron_idx, t, x, y) VALUES (?, ?, ?, ?)''', data)
         # The changes are committed.
         conn.commit()
         # The connection is closed.
@@ -67,7 +72,7 @@ class RulkovNetwork:
         # If the y variable increases for a node, the increment count for that node is incremented in the index for that node.
         self.increment_count = self.increment_count.at[jax.numpy.where(self.nodes_y > previous)].set(1)
         # If the y variable decreases for a node and increment count for that node is greater than 50, the current time is appended to the list that is a value in local maximizers in the node's index as key and the increment count for that node is reset to 0.
-        for i in jax.numpy.where(self.nodes_y < previous):
+        for i in jax.numpy.where(self.nodes_y < previous)[0]:
             if self.increment_count[i] > 50:
                 self.local_maximizers[i] = jax.numpy.append(self.local_maximizers[i], self.t)
                 self.increment_count[i] = 0
@@ -75,14 +80,20 @@ class RulkovNetwork:
 
     # The method fire implements the Rulkov Map, updating the network nodes.
     def fire(self):
-        # The current value of the y variable is saved for each node in the previous y variable for later use in the watch_increments method.
-        previous_y = self.nodes_y
-        # nodes_x is updated to \frac{\alpha}{2+x_n^2}+y_n
-        self.nodes_x = self.alpha/(2+jax.numpy.square(self.nodes_x))+self.nodes_y
+        # the coupling term is the dot product of the transpose of weights and the nodes_x.
+        coupling = jax.numpy.matmul(self.weights.T, self.nodes_x)
+        # nodes_x is updated to \frac{\alpha}{2+x_n^2}+y_n+I_i,t
+        self.nodes_x = self.alpha/(2+jax.numpy.square(self.nodes_x))+self.nodes_y + coupling
         # nodes_y is updated to y_n- \sigma x_n - \beta
         self.nodes_y = self.nodes_y - self.sigma*self.nodes_x - self.beta
         # The nodes are updated to the composition of nodes_x and nodes_y side by side.
         self.nodes = jax.numpy.concatenate((self.nodes_x, self.nodes_y), axis=1)
+
+    def evolve(self):
+        # The current value of the y variable is saved for each node in the previous y variable for later use in the watch_increments method.
+        previous_y = self.nodes_y
+        # The fire method is called.
+        self.fire()
         # The network evolves in the variable t for integer timesteps
         self.t += 1
         # The watch_increments method is called to account for the increment count for each node if the y variable increases in a streak.
