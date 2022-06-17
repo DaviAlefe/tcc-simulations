@@ -60,8 +60,10 @@ class RulkovNetwork:
         )''')
         # The nodes are concatenated into an array called data, with the array indices as neuron_ids in first column, time as the second column and repeated for each node.
         data = jax.numpy.concatenate((jax.numpy.arange(self.n).reshape((self.n, 1)), self.t*jax.numpy.ones((self.n, 1)), self.nodes), axis=1)
+        # transform data to list of tuples
+        data = data.tolist()
         # The array data is then saved in the table variables of the sqlite file, in columns x, y, t.
-        c.execute('''INSERT INTO Variables (neuron_idx, t, x, y) VALUES (?, ?, ?, ?)''', data)
+        c.executemany('''INSERT INTO Variables (neuron_idx, t, x, y) VALUES (?, ?, ?, ?)''', data)
         # The changes are committed.
         conn.commit()
         # The connection is closed.
