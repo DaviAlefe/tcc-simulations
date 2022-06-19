@@ -69,6 +69,21 @@ class RulkovNetwork:
         # The connection is closed.
         conn.close()
     
+    # The method save_maxima takes the local maximizers as input and saves the nodes' y variable in the table LocalMaxima in the sqlite db, associated with the node id and time variable.
+    def save_maxima(self, maximum, maximum_time, neuron_id):
+        # The connection to a sqlite file in a directory named after the simulation_id is opened or created if doesnt exist.
+        conn = sqlite3.connect(f'simulations_data/{self.simulation_id}.db')
+        # The cursor is created.
+        c = conn.cursor()
+        # The table LocalMaxima is created if it does not exist.
+        c.execute('''CREATE TABLE IF NOT EXISTS LocalMaxima (
+            neuron_idx INTEGER,
+            t INTEGER,
+            y REAL
+        )''')
+        # The maximum is saved in the table LocalMaxima in the columns neuron_idx, t and y.
+        c.execute('''INSERT INTO LocalMaxima (neuron_idx, t, y) VALUES (?, ?, ?)''', (neuron_id, maximum_time, maximum))
+
     # The method watch_increments receives the previous and compares to the current value of the y variable and accounts for the increment count for each node if the y variable increases in a streak.
     def watch_increments(self, previous):
         # If the y variable increases for a node, the increment count for that node is incremented in the index for that node.
@@ -78,6 +93,8 @@ class RulkovNetwork:
             if self.increment_count[i] > 50:
                 self.local_maximizers[i] = jax.numpy.append(self.local_maximizers[i], self.t)
                 self.increment_count[i] = 0
+                # The method save_maxima is called to save the local maximizer of the node in the sqlite db.
+                self.save_maxima(self.nodes_y[i], self.t, i)
 
 
     # The method fire implements the Rulkov Map, updating the network nodes.
