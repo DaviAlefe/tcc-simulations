@@ -100,7 +100,6 @@ class RulkovNetwork:
         increment_count_greater_than_50 = jax.numpy.where(self.increment_count > 50)[0]
         # The intersection of the two arrays is stored in decremented_nodes_greater_than_50.
         decremented_nodes_greater_than_50 = jax.numpy.intersect1d(decremented_nodes, increment_count_greater_than_50)
-        print(decremented_nodes_greater_than_50)
         # The decrement_procedures method is called for each decremented node greater than 50.
         jax.numpy.arange(self.n).reshape((self.n, 1)).at[decremented_nodes_greater_than_50].apply(self.decrement_procedures)
 
@@ -111,7 +110,7 @@ class RulkovNetwork:
         # the coupling term is the dot product of the transpose of weights and the nodes_x.
         coupling = jax.numpy.matmul(self.weights.T, self.nodes_x)
         # nodes_x is updated to \frac{\alpha}{2+x_n^2}+y_n+I_i,t
-        self.nodes_x = self.alpha/(2+jax.numpy.square(self.nodes_x))+self.nodes_y + coupling
+        self.nodes_x = self.alpha/(1+jax.numpy.square(self.nodes_x))+self.nodes_y + coupling
         # nodes_y is updated to y_n- \sigma x_n - \beta
         self.nodes_y = self.nodes_y - self.sigma*self.nodes_x - self.beta
         # The nodes are updated to the composition of nodes_x and nodes_y side by side.
