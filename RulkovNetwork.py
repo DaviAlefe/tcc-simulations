@@ -84,17 +84,26 @@ class RulkovNetwork:
         # The maximum is saved in the table LocalMaxima in the columns neuron_idx, t and y.
         c.execute('''INSERT INTO LocalMaxima (neuron_idx, t, y) VALUES (?, ?, ?)''', (neuron_id, maximum_time, maximum))
 
+    def decrement_procedures(self, i):
+        self.local_maximizers[i] = jax.numpy.append(self.local_maximizers[i], self.t)
+        self.increment_count.at[i].set(0)
+        # The method save_maxima is called to save the local maximizer of the node in the sqlite db.
+        self.save_maxima(self.nodes_y[i], self.t, i)
+
     # The method watch_increments receives the previous and compares to the current value of the y variable and accounts for the increment count for each node if the y variable increases in a streak.
     def watch_increments(self, previous):
-        # If the y variable increases for a node, the increment count for that node is incremented in the index for that node.
-        self.increment_count = self.increment_count.at[jax.numpy.where(self.nodes_y > previous)].set(1)
-        # If the y variable decreases for a node and increment count for that node is greater than 50, the current time is appended to the list that is a value in local maximizers in the node's index as key and the increment count for that node is reset to 0.
-        for i in jax.numpy.where(self.nodes_y < previous)[0]:
-            if self.increment_count[i] > 50:
-                self.local_maximizers[i] = jax.numpy.append(self.local_maximizers[i], self.t)
-                self.increment_count[i] = 0
-                # The method save_maxima is called to save the local maximizer of the node in the sqlite db.
-                self.save_maxima(self.nodes_y[i], self.t, i)
+        # increment_count is incremented in the same indexes as where nodes_y increased.
+        self.increment_count = self.increment_count.at[jax.numpy.where(self.nodes_y > previous)].add(1)
+        # If the y variable decreases for a node and increment count for that node is greater than 50, the decrement_procedures method is called.
+        decremented_nodes = jax.numpy.where(self.nodes_y < previous)[0]
+        # Indices of increment_count greater than 50 are stored in an array.
+        increment_count_greater_than_50 = jax.numpy.where(self.increment_count > 50)[0]
+        # The intersection of the two arrays is stored in decremented_nodes_greater_than_50.
+        decremented_nodes_greater_than_50 = jax.numpy.intersect1d(decremented_nodes, increment_count_greater_than_50)
+        print(decremented_nodes_greater_than_50)
+        # The decrement_procedures method is called for each decremented node greater than 50.
+        jax.numpy.arange(self.n).reshape((self.n, 1)).at[decremented_nodes_greater_than_50].apply(self.decrement_procedures)
+
 
 
     # The method fire implements the Rulkov Map, updating the network nodes.
