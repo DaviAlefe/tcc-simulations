@@ -88,6 +88,10 @@ class RulkovNetwork:
         print(f'Data to be saved: {data}')
         # The array data is then saved in the table LocalMaxima of the sqlite file, in columns neuron_idx, t, y.
         c.executemany('''INSERT INTO LocalMaxima (neuron_idx, t, y) VALUES (?, ?, ?)''', data)
+        # The changes are committed.
+        conn.commit()
+        # The connection is closed.
+        conn.close()
 
     # The decrement_procedures methods receives decremented nodes ids as input and runs procedures for them
     def decrement_procedures(self, neuron_ids):
