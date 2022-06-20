@@ -46,7 +46,7 @@ class RulkovNetwork:
 
     
     # The method save_nodes saves the nodes of the network in a sqlite file in the same directory, associated with the current time variable.
-    def save_nodes(self):
+    def save_nodes(self) -> None:
         # The connection to a sqlite file in a directory named after the simulation_id is opened or created if doesnt exist.
         conn = sqlite3.connect(f'simulations_data/{self.simulation_id}.db')
         # The cursor is created.
@@ -70,7 +70,7 @@ class RulkovNetwork:
         conn.close()
     
     # The method save_maxima takes the local maximizers as input and saves the nodes' y variable in the table LocalMaxima in the sqlite db, associated with the node id and time variable.
-    def save_maxima(self, maxima, t, neuron_ids):
+    def save_maxima(self, maxima: jax.numpy.array, t: int, neuron_ids: jax.numpy.array) -> None:
         # The connection to a sqlite file in a directory named after the simulation_id is opened or created if doesnt exist.
         conn = sqlite3.connect(f'simulations_data/{self.simulation_id}.db')
         # The cursor is created.
@@ -82,7 +82,7 @@ class RulkovNetwork:
             y REAL
         )''')
         # The maxima are concatenated into an array called data, with neuron_ids in first column, time as the second column and repeated for each node and nodes_y at that time as third column.
-        data = jax.numpy.concatenate((neuron_ids.reshape((neuron_ids.shape[0],1)), t*jax.numpy.ones((neuron_ids.shape[0],1)), maxima), axis=1)
+        data = jax.numpy.concatenate((neuron_ids.reshape((neuron_ids.shape[0],1)), (t-1)*jax.numpy.ones((neuron_ids.shape[0],1)), maxima), axis=1)
         # transform data to list of lists
         data = data.tolist()
         print(f'Data to be saved: {data}')
@@ -94,7 +94,7 @@ class RulkovNetwork:
         conn.close()
 
     # The decrement_procedures methods receives decremented nodes ids as input and runs procedures for them
-    def decrement_procedures(self, neuron_ids):
+    def decrement_procedures(self, neuron_ids: jax.numpy.array) -> None:
         # if neuron_ids is not empty
         if neuron_ids.shape[0] > 0:
             print(f'\t Decremented nodes: {neuron_ids}')
@@ -114,7 +114,7 @@ class RulkovNetwork:
 
 
     # The method watch_increments receives the previous and compares to the current value of the y variable and accounts for the increment count for each node if the y variable increases in a streak.
-    def watch_increments(self, previous):
+    def watch_increments(self, previous: jax.numpy.array) -> None:
         # increment_count is incremented in the same indexes as where nodes_y increased.
         self.increment_count = self.increment_count.at[jax.numpy.where(self.nodes_y > previous)[0]].add(1)
         # If the y variable decreases for a node and increment count for that node is greater than 50, the decrement_procedures method is called.
@@ -124,7 +124,7 @@ class RulkovNetwork:
 
 
     # The method fire implements the Rulkov Map, updating the network nodes.
-    def fire(self):
+    def fire(self) -> None:
         # the coupling term is the dot product of the transpose of weights and the nodes_x.
         coupling = jax.numpy.matmul(self.weights.T, self.nodes_x)
         # nodes_x is updated to \frac{\alpha}{2+x_n^2}+y_n+I_i,t
@@ -134,7 +134,7 @@ class RulkovNetwork:
         # The nodes are updated to the composition of nodes_x and nodes_y side by side.
         self.nodes = jax.numpy.concatenate((self.nodes_x, self.nodes_y), axis=1)
 
-    def evolve(self):
+    def evolve(self) -> None:
         # The current value of the y variable is saved for each node in the previous y variable for later use in the watch_increments method.
         previous_y = self.nodes_y
         # The fire method is called.
