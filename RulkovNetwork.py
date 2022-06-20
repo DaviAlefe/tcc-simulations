@@ -60,7 +60,7 @@ class RulkovNetwork:
         )''')
         # The nodes are concatenated into an array called data, with the array indices as neuron_ids in first column, time as the second column and repeated for each node.
         data = jax.numpy.concatenate((jax.numpy.arange(self.n).reshape((self.n, 1)), self.t*jax.numpy.ones((self.n, 1)), self.nodes), axis=1)
-        # transform data to list of tuples
+        # transform data to list of lists
         data = data.tolist()
         # The array data is then saved in the table variables of the sqlite file, in columns x, y, t.
         c.executemany('''INSERT INTO Variables (neuron_idx, t, x, y) VALUES (?, ?, ?, ?)''', data)
@@ -70,7 +70,7 @@ class RulkovNetwork:
         conn.close()
     
     # The method save_maxima takes the local maximizers as input and saves the nodes' y variable in the table LocalMaxima in the sqlite db, associated with the node id and time variable.
-    def save_maxima(self, maximum, maximum_time, neuron_id):
+    def save_maxima(self, maxima, t, neuron_ids):
         # The connection to a sqlite file in a directory named after the simulation_id is opened or created if doesnt exist.
         conn = sqlite3.connect(f'simulations_data/{self.simulation_id}.db')
         # The cursor is created.
@@ -81,27 +81,41 @@ class RulkovNetwork:
             t INTEGER,
             y REAL
         )''')
-        # The maximum is saved in the table LocalMaxima in the columns neuron_idx, t and y.
-        c.execute('''INSERT INTO LocalMaxima (neuron_idx, t, y) VALUES (?, ?, ?)''', (neuron_id, maximum_time, maximum))
+        # The maxima are concatenated into an array called data, with neuron_ids in first column, time as the second column and repeated for each node and nodes_y at that time as third column.
+        data = jax.numpy.concatenate((neuron_ids.reshape((neuron_ids.shape[0],1)), t*jax.numpy.ones((neuron_ids.shape[0],1)), maxima), axis=1)
+        # transform data to list of lists
+        data = data.tolist()
+        print(f'Data to be saved: {data}')
+        # The array data is then saved in the table LocalMaxima of the sqlite file, in columns neuron_idx, t, y.
+        c.executemany('''INSERT INTO LocalMaxima (neuron_idx, t, y) VALUES (?, ?, ?)''', data)
 
-    def decrement_procedures(self, i):
-        self.local_maximizers[i] = jax.numpy.append(self.local_maximizers[i], self.t)
-        self.increment_count.at[i].set(0)
-        # The method save_maxima is called to save the local maximizer of the node in the sqlite db.
-        self.save_maxima(self.nodes_y[i], self.t, i)
+    # The decrement_procedures methods receives decremented nodes ids as input and runs procedures for them
+    def decrement_procedures(self, neuron_ids):
+        # if neuron_ids is not empty
+        if neuron_ids.shape[0] > 0:
+            print(f'\t Decremented nodes: {neuron_ids}')
+            # Indices of increment_count greater than 50 are stored in an array.
+            increment_count_greater_than_50 = jax.numpy.where(self.increment_count > 50)[0]
+            # The intersection of the two arrays is stored in decremented_nodes_greater_than_50.
+            decremented_nodes_greater_than_50 = jax.numpy.intersect1d(neuron_ids, increment_count_greater_than_50)
+            # If decremented_nodes_greater_than_50 is not empty
+            if decremented_nodes_greater_than_50.shape[0] > 0:
+                print(f'\t Decremented nodes greater than 50: {decremented_nodes_greater_than_50}')
+                # self.local_maximizers[i] = jax.numpy.append(self.local_maximizers[i], self.t)
+                # The method save_maxima is called to save the local maximizer of the node in the sqlite db.
+                self.save_maxima(self.nodes_y.at[decremented_nodes_greater_than_50].get(), self.t, decremented_nodes_greater_than_50)
+
+            # increment_count is reset to 0 for the neurons in the array neuron_ids.
+            self.increment_count = self.increment_count.at[neuron_ids].set(0)
+
 
     # The method watch_increments receives the previous and compares to the current value of the y variable and accounts for the increment count for each node if the y variable increases in a streak.
     def watch_increments(self, previous):
         # increment_count is incremented in the same indexes as where nodes_y increased.
-        self.increment_count = self.increment_count.at[jax.numpy.where(self.nodes_y > previous)].add(1)
+        self.increment_count = self.increment_count.at[jax.numpy.where(self.nodes_y > previous)[0]].add(1)
         # If the y variable decreases for a node and increment count for that node is greater than 50, the decrement_procedures method is called.
         decremented_nodes = jax.numpy.where(self.nodes_y < previous)[0]
-        # Indices of increment_count greater than 50 are stored in an array.
-        increment_count_greater_than_50 = jax.numpy.where(self.increment_count > 50)[0]
-        # The intersection of the two arrays is stored in decremented_nodes_greater_than_50.
-        decremented_nodes_greater_than_50 = jax.numpy.intersect1d(decremented_nodes, increment_count_greater_than_50)
-        # The decrement_procedures method is called for each decremented node greater than 50.
-        jax.numpy.arange(self.n).reshape((self.n, 1)).at[decremented_nodes_greater_than_50].apply(self.decrement_procedures)
+        self.decrement_procedures(decremented_nodes)
 
 
 
