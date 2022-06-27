@@ -19,16 +19,24 @@ class RulkovNetwork:
     nodes_x: jax.numpy.ndarray
     nodes_y: jax.numpy.ndarray
     w_max: float
+    w_0: float
 
     # The constructor for the RulkovNetwork class.
     # The default value of simulation_id is simulation_ current datetime
-    def __init__(self, adjacency_matrix, w_max, simulation_id=f'simulation_{datetime.now().strftime("%Y%m%d_%H%M%S")}'):
+    def __init__(self, adjacency_matrix, w_max, w_0, simulation_id=f'simulation_{datetime.now().strftime("%Y%m%d_%H%M%S")}'):
         self.adjacency_matrix = adjacency_matrix
         self.n = adjacency_matrix.shape[0]
         self.w_max = w_max
+        self.w_0 = w_0
         self.simulation_id = simulation_id
-        # An attribute of this class is the matrix for weights of the network, initialized to be the adjacency matrix.
-        self.weights = adjacency_matrix
+
+        # An attribute of this class is the matrix for weights of the network, initialized to be equal to w_0 everywhere.
+        self.weights = jax.numpy.ones((self.n, self.n)) * w_0
+        # The parameters for the weights' update function are the floats Ap, Ad and the int Ts
+        self.Ap = 0.008
+        self.Ad = -0.0032
+        self.Ts = 58
+
         # The network nodes are represented by a jax array of shape (n, 2) initialized to random floats in the interval [-2,2] for the first dimension and in the interval [-4, 0] for the second dimension.
         self.nodes_x = jax.random.uniform(jax.random.PRNGKey(0), shape=(self.n, 1), minval=-2, maxval=2)
         self.nodes_y = jax.random.uniform(jax.random.PRNGKey(0), shape=(self.n, 1), minval=-4, maxval=0)
@@ -39,10 +47,9 @@ class RulkovNetwork:
         # There are parameters sigma and beta, both equal 0.001
         self.sigma = 0.001
         self.beta = 0.001
+
         # The network evolves in the variable t for integer timesteps
         self.t = 0
-        # A dictionary called local maximizers will be used to store the local maximizers of the nodes' y variable, with one key for each node.
-        self.local_maximizers = {}
         # An array called increment count will be used to count the number of times the y variable increases in a streak.
         self.increment_count = jax.numpy.zeros((self.n, 1))
 
@@ -107,7 +114,6 @@ class RulkovNetwork:
             # If decremented_nodes_greater_than_50 is not empty
             if decremented_nodes_greater_than_50.shape[0] > 0:
                 print(f'\t Decremented nodes greater than 50: {decremented_nodes_greater_than_50}')
-                # self.local_maximizers[i] = jax.numpy.append(self.local_maximizers[i], self.t)
                 # The method save_maxima is called to save the local maximizer of the node in the sqlite db.
                 self.save_maxima(self.nodes_y.at[decremented_nodes_greater_than_50].get(), self.t, decremented_nodes_greater_than_50)
 
@@ -123,7 +129,9 @@ class RulkovNetwork:
         decremented_nodes = jax.numpy.where(self.nodes_y < previous)[0]
         self.decrement_procedures(decremented_nodes)
 
-
+    # The method update_weights updates the weights matrix
+    def update_weights(self) -> None:
+        pass
 
     # The method fire implements the Rulkov Map, updating the network nodes.
     def fire(self) -> None:
