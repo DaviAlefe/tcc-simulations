@@ -52,6 +52,8 @@ class RulkovNetwork:
         self.t = 0
         # An array called increment count will be used to count the number of times the y variable increases in a streak.
         self.increment_count = jax.numpy.zeros((self.n, 1))
+        # The most recent value for the time in y maxima is initialized to 0 for each neuron.
+        self.last_t_in_y_max = jax.numpy.zeros((self.n, 1))
         # The most recent interval between y maxima for each neuron are initialized to 0.
         self.delta_t = jax.numpy.zeros((self.n, 1))
 
@@ -103,9 +105,17 @@ class RulkovNetwork:
         conn.commit()
         # The connection is closed.
         conn.close()
+    
+    # The method update_maximizers receives neurons_to_update and updates the last_t_in_y_max array at them]
+    def update_maximizers(self, neurons_to_update: jax.numpy.array) -> None:
+        # The delta_t array is updated at the time of the current simulation step.
+        self.delta_t =  self.delta_t.at[neurons_to_update].set(self.t - self.last_t_in_y_max.at[neurons_to_update].get())
+        # The last_t_in_y_max array is updated at the time of the current simulation step.
+        self.last_t_in_y_max = self.last_t_in_y_max.at[neurons_to_update].set(self.t)
+
 
     # The decrement_procedures methods receives decremented nodes ids as input and runs procedures for them
-    def decrement_procedures(self, neuron_ids: jax.numpy.array) -> None:
+    def decrement_procedures(self, neuron_ids: jax.numpy.array, previous) -> None:
         # if neuron_ids is not empty
         if neuron_ids.shape[0] > 0:
             print(f'\t Decremented nodes: {neuron_ids}')
@@ -117,7 +127,9 @@ class RulkovNetwork:
             if decremented_nodes_greater_than_50.shape[0] > 0:
                 print(f'\t Decremented nodes greater than 50: {decremented_nodes_greater_than_50}')
                 # The method save_maxima is called to save the local maximizer of the node in the sqlite db.
-                self.save_maxima(self.nodes_y.at[decremented_nodes_greater_than_50].get(), self.t, decremented_nodes_greater_than_50)
+                self.save_maxima(previous.at[decremented_nodes_greater_than_50].get(), (self.t-1), decremented_nodes_greater_than_50)
+                # The update_maximizers method is called to update the last_t_in_y_max and delta_t arrays.
+                self.update_maximizers(decremented_nodes_greater_than_50)
 
             # increment_count is reset to 0 for the neurons in the array neuron_ids.
             self.increment_count = self.increment_count.at[neuron_ids].set(0)
@@ -129,7 +141,7 @@ class RulkovNetwork:
         self.increment_count = self.increment_count.at[jax.numpy.where(self.nodes_y > previous)[0]].add(1)
         # If the y variable decreases for a node and increment count for that node is greater than 50, the decrement_procedures method is called.
         decremented_nodes = jax.numpy.where(self.nodes_y < previous)[0]
-        self.decrement_procedures(decremented_nodes)
+        self.decrement_procedures(decremented_nodes, previous)
 
     # The method update_weights updates the weights matrix
     def update_weights(self) -> None:
