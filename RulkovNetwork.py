@@ -18,12 +18,14 @@ class RulkovNetwork:
     t: int
     nodes_x: jax.numpy.ndarray
     nodes_y: jax.numpy.ndarray
+    w_max: float
 
     # The constructor for the RulkovNetwork class.
     # The default value of simulation_id is simulation_ current datetime
-    def __init__(self, adjacency_matrix, simulation_id=f'simulation_{datetime.now().strftime("%Y%m%d_%H%M%S")}'):
+    def __init__(self, adjacency_matrix, w_max, simulation_id=f'simulation_{datetime.now().strftime("%Y%m%d_%H%M%S")}'):
         self.adjacency_matrix = adjacency_matrix
         self.n = adjacency_matrix.shape[0]
+        self.w_max = w_max
         self.simulation_id = simulation_id
         # An attribute of this class is the matrix for weights of the network, initialized to be the adjacency matrix.
         self.weights = adjacency_matrix
