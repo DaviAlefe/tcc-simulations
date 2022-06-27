@@ -26,6 +26,7 @@ class RulkovNetwork:
     def __init__(self, adjacency_matrix, w_max, w_0, simulation_id=f'simulation_{datetime.now().strftime("%Y%m%d_%H%M%S")}'):
         self.adjacency_matrix = adjacency_matrix
         self.n = adjacency_matrix.shape[0]
+        self.average_connectivity = 0 if jax.numpy.sum(self.adjacency_matrix) == 0 else (self.n/jax.numpy.sum(self.adjacency_matrix))
         self.w_max = w_max
         self.w_0 = w_0
         self.simulation_id = simulation_id
@@ -150,7 +151,7 @@ class RulkovNetwork:
     # The method fire implements the Rulkov Map, updating the network nodes.
     def fire(self) -> None:
         # the coupling term is the influence of other nodes on the current node.
-        coupling = -(self.n/jax.numpy.sum(self.adjacency_matrix)) * (self.nodes_x - jax.numpy.ones((self.n,1))) * jax.numpy.diagonal(jax.numpy.matmul(self.adjacency_matrix, self.weights.T))
+        coupling = - self.average_connectivity * jax.numpy.multiply((self.nodes_x - jax.numpy.ones((self.n,1))), jax.numpy.diagonal(jax.numpy.matmul(self.adjacency_matrix, self.weights.T)).reshape(-1,1))
         # nodes_x is updated to \frac{\alpha}{2+x_n^2}+y_n+I_i,t
         self.nodes_x = self.alpha/(1+jax.numpy.square(self.nodes_x)) + self.nodes_y + coupling
         # nodes_y is updated to y_n- \sigma x_n - \beta
