@@ -52,6 +52,8 @@ class RulkovNetwork:
         self.t = 0
         # An array called increment count will be used to count the number of times the y variable increases in a streak.
         self.increment_count = jax.numpy.zeros((self.n, 1))
+        # The most recent interval between y maxima for each neuron are initialized to 0.
+        self.delta_t = jax.numpy.zeros((self.n, 1))
 
     
     # The method save_nodes saves the nodes of the network in a sqlite file in the same directory, associated with the current time variable.
