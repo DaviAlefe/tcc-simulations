@@ -55,8 +55,8 @@ class RulkovNetwork:
         self.increment_count = jax.numpy.zeros((self.n, 1))
         # The most recent value for the time in y maxima is initialized to 0 for each neuron.
         self.last_t_in_y_max = jax.numpy.zeros((self.n, 1))
-        # The most recent interval between y maxima for each neuron are initialized to 0.
-        self.delta_t = jax.numpy.zeros((self.n, 1))
+        # The most recent interval between y maxima for each pair of neurons are initialized to 0.
+        self.delta_t = jax.numpy.zeros((self.n, self.n))
 
     
     # The method save_nodes saves the nodes of the network in a sqlite file in the same directory, associated with the current time variable.
@@ -145,8 +145,29 @@ class RulkovNetwork:
         self.decrement_procedures(decremented_nodes, previous)
 
     # The method update_weights updates the weights matrix
-    def update_weights(self) -> None:
-        pass
+    # Receives the neurons to update and updates the weights in the corresponding rows.
+    def update_weights(self, neurons_to_update) -> None:
+        # the delta_w matrix is initialized to zero.
+        delta_w = jax.numpy.zeros((self.n, self.n))
+
+        # I is a nxn ones matrix where delta_t is lesser than Ts and 0 otherwise.
+        I = jax.numpy.where(self.delta_t < self.Ts, jax.numpy.ones((self.n, self.n)), jax.numpy.zeros((self.n, self.n)))
+        rel_ampl = ((self.Ap - self.Ad)/self.Ts)
+        # delta_w is set to Ap*I - ((Ap-Ad)/Ts)*delta_t where delta_t is lesser than Ts.
+        new_weights = self.Ap*I - rel_ampl*self.delta_t.at[jax.numpy.where(self.delta_t < self.Ts)].get()
+        delta_w = delta_w.at[jax.numpy.where(self.delta_t < self.Ts)].set(new_weights.at[jax.numpy.where(self.delta_t < self.Ts)].get())
+
+        # I is a nxn ones matrix where delta_t is greater than Ts and 0 otherwise.
+        I = jax.numpy.where(self.delta_t > self.Ts, jax.numpy.ones((self.n, self.n)), jax.numpy.zeros((self.n, self.n)))
+        new_weights = self.Ad*I
+        delta_w = delta_w.at[jax.numpy.where(self.delta_t > self.Ts)].set(new_weights.at[jax.numpy.where(self.delta_t > self.Ts)].get())
+
+        # The weights matrix is updated with the delta_w matrix.
+        self.weights = self.weights.at[neurons_to_update].set(self.weights.at[neurons_to_update].get() + delta_w)
+        # The weights matrix is brought to w_max where the weights are greater than w_max.
+        self.weights = self.weights.at[jax.numpy.where(self.weights > self.w_max)].set(self.w_max)
+        # The weights matrix is brought to 0 where the weights are less than 0.
+        self.weights = self.weights.at[jax.numpy.where(self.weights < 0)].set(0)
 
     # The method fire implements the Rulkov Map, updating the network nodes.
     def fire(self) -> None:
