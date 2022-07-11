@@ -161,7 +161,7 @@ class RulkovNetwork:
         I = jax.numpy.where(self.delta_t < self.Ts, jax.numpy.ones((self.n, self.n)), jax.numpy.zeros((self.n, self.n)))
         rel_ampl = ((self.Ap - self.Ad)/self.Ts)
         # delta_w is set to Ap*I - ((Ap-Ad)/Ts)*delta_t where delta_t is lesser than Ts.
-        new_weights = self.Ap*I - rel_ampl*self.delta_t.at[jax.numpy.where(self.delta_t < self.Ts)].get()
+        new_weights = self.Ap*I - rel_ampl*jax.numpy.abs(self.delta_t.at[jax.numpy.where(self.delta_t < self.Ts)].get())
         delta_w = delta_w.at[jax.numpy.where(self.delta_t < self.Ts)].set(new_weights.at[jax.numpy.where(self.delta_t < self.Ts)].get())
 
         # I is a nxn ones matrix where delta_t is greater than Ts and 0 otherwise.
