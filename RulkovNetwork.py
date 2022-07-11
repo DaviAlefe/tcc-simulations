@@ -109,10 +109,14 @@ class RulkovNetwork:
     
     # The method update_maximizers receives neurons_to_update and updates the last_t_in_y_max array at them]
     def update_maximizers(self, neurons_to_update: jax.numpy.array) -> None:
-        # The delta_t array is updated at the time of the current simulation step.
-        self.delta_t =  self.delta_t.at[neurons_to_update].set(self.t - self.last_t_in_y_max.at[neurons_to_update].get())
         # The last_t_in_y_max array is updated at the time of the current simulation step.
-        self.last_t_in_y_max = self.last_t_in_y_max.at[neurons_to_update].set(self.t)
+        self.last_t_in_y_max = self.last_t_in_y_max.at[neurons_to_update].set(self.t-1)
+        # The t_col matrix is given by its n columns being each equal to last_t_in_y_max.
+        t_col = jax.numpy.repeat(self.last_t_in_y_max, self.n, axis=1)
+        # The t_row matrix is given by its n rows being each equal to last_t_in_y_max.
+        t_row = t_col.T
+        # The delta_t matrix is given by the difference between the t_col and t_row matrices.
+        self.delta_t = t_col - t_row
 
 
     # The decrement_procedures methods receives decremented nodes ids as input and runs procedures for them
@@ -146,7 +150,7 @@ class RulkovNetwork:
 
     # The method update_weights updates the weights matrix
     # Receives the neurons to update and updates the weights in the corresponding rows.
-    def update_weights(self, neurons_to_update) -> None:
+    def update_weights(self, neurons_to_update: jax.numpy.array) -> None:
         # the delta_w matrix is initialized to zero.
         delta_w = jax.numpy.zeros((self.n, self.n))
 
@@ -164,6 +168,7 @@ class RulkovNetwork:
 
         # The weights matrix is updated with the delta_w matrix.
         self.weights = self.weights.at[neurons_to_update].set(self.weights.at[neurons_to_update].get() + delta_w)
+
         # The weights matrix is brought to w_max where the weights are greater than w_max.
         self.weights = self.weights.at[jax.numpy.where(self.weights > self.w_max)].set(self.w_max)
         # The weights matrix is brought to 0 where the weights are less than 0.
