@@ -135,6 +135,9 @@ class RulkovNetwork:
                 self.save_maxima(previous.at[decremented_nodes_greater_than_50].get(), (self.t-1), decremented_nodes_greater_than_50)
                 # The update_maximizers method is called to update the last_t_in_y_max and delta_t arrays.
                 self.update_maximizers(decremented_nodes_greater_than_50)
+                # The update_weights method is called to update the weights of the decremented nodes.
+                self.update_weights(decremented_nodes_greater_than_50)
+
 
             # increment_count is reset to 0 for the neurons in the array neuron_ids.
             self.increment_count = self.increment_count.at[neuron_ids].set(0)
