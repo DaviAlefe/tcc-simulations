@@ -209,7 +209,7 @@ class RulkovNetwork:
         weights_data = jax.numpy.array([self.t*jax.numpy.ones(self.n, dtype=jax.numpy.int32),row_idx.flatten(), col_idx.flatten(), self.weights.flatten()]).T
         # The weights_data is inserted into the Weights table.
         weights_data = weights_data.tolist()
-        c.executemany('''INSERT INTO Weights (start_neuron_idx, end_neuron_idx, connection_weight) VALUES (?, ?, ?)''', weights_data)
+        c.executemany('''INSERT INTO Weights (time, start_neuron_idx, end_neuron_idx, connection_weight) VALUES (?, ?, ?, ?)''', weights_data)
         # The changes are committed.
         conn.commit()
         # The connection is closed.
