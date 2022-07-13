@@ -33,6 +33,8 @@ class RulkovNetwork:
 
         # An attribute of this class is the matrix for weights of the network, initialized to be equal to w_0 everywhere.
         self.weights = jax.numpy.ones((self.n, self.n)) * w_0
+        # Wheter to freeze the weights or not.
+        self.freeze_weights = False
         # The parameters for the weights' update function are the floats Ap, Ad and the int Ts
         self.Ap = 0.008
         self.Ad = -0.0032
@@ -154,28 +156,31 @@ class RulkovNetwork:
     # The method update_weights updates the weights matrix
     # Receives the neurons to update and updates the weights in the corresponding rows.
     def update_weights(self, neurons_to_update: jax.numpy.array) -> None:
-        # the delta_w matrix is initialized to zero.
-        delta_w = jax.numpy.zeros((self.n, self.n))
+        if self.freeze_weights:
+            return
+        else:
+            # the delta_w matrix is initialized to zero.
+            delta_w = jax.numpy.zeros((self.n, self.n))
 
-        # I is a nxn ones matrix where delta_t is lesser than Ts and 0 otherwise.
-        I = jax.numpy.where(self.delta_t < self.Ts, jax.numpy.ones((self.n, self.n)), jax.numpy.zeros((self.n, self.n)))
-        rel_ampl = ((self.Ap - self.Ad)/self.Ts)
-        # delta_w is set to Ap*I - ((Ap-Ad)/Ts)*delta_t where delta_t is lesser than Ts.
-        new_weights = self.Ap*I - rel_ampl*jax.numpy.abs(self.delta_t.at[jax.numpy.where(self.delta_t < self.Ts)].get())
-        delta_w = delta_w.at[jax.numpy.where(self.delta_t < self.Ts)].set(new_weights.at[jax.numpy.where(self.delta_t < self.Ts)].get())
+            # I is a nxn ones matrix where delta_t is lesser than Ts and 0 otherwise.
+            I = jax.numpy.where(self.delta_t < self.Ts, jax.numpy.ones((self.n, self.n)), jax.numpy.zeros((self.n, self.n)))
+            rel_ampl = ((self.Ap - self.Ad)/self.Ts)
+            # delta_w is set to Ap*I - ((Ap-Ad)/Ts)*delta_t where delta_t is lesser than Ts.
+            new_weights = self.Ap*I - rel_ampl*jax.numpy.abs(self.delta_t.at[jax.numpy.where(self.delta_t < self.Ts)].get())
+            delta_w = delta_w.at[jax.numpy.where(self.delta_t < self.Ts)].set(new_weights.at[jax.numpy.where(self.delta_t < self.Ts)].get())
 
-        # I is a nxn ones matrix where delta_t is greater than Ts and 0 otherwise.
-        I = jax.numpy.where(self.delta_t > self.Ts, jax.numpy.ones((self.n, self.n)), jax.numpy.zeros((self.n, self.n)))
-        new_weights = self.Ad*I
-        delta_w = delta_w.at[jax.numpy.where(self.delta_t > self.Ts)].set(new_weights.at[jax.numpy.where(self.delta_t > self.Ts)].get())
+            # I is a nxn ones matrix where delta_t is greater than Ts and 0 otherwise.
+            I = jax.numpy.where(self.delta_t > self.Ts, jax.numpy.ones((self.n, self.n)), jax.numpy.zeros((self.n, self.n)))
+            new_weights = self.Ad*I
+            delta_w = delta_w.at[jax.numpy.where(self.delta_t > self.Ts)].set(new_weights.at[jax.numpy.where(self.delta_t > self.Ts)].get())
 
-        # The weights matrix is updated with the delta_w matrix.
-        self.weights = self.weights.at[neurons_to_update].set(self.weights.at[neurons_to_update].get() + delta_w)
+            # The weights matrix is updated with the delta_w matrix.
+            self.weights = self.weights.at[neurons_to_update].set(self.weights.at[neurons_to_update].get() + delta_w)
 
-        # The weights matrix is brought to w_max where the weights are greater than w_max.
-        self.weights = self.weights.at[jax.numpy.where(self.weights > self.w_max)].set(self.w_max)
-        # The weights matrix is brought to 0 where the weights are less than 0.
-        self.weights = self.weights.at[jax.numpy.where(self.weights < 0)].set(0)
+            # The weights matrix is brought to w_max where the weights are greater than w_max.
+            self.weights = self.weights.at[jax.numpy.where(self.weights > self.w_max)].set(self.w_max)
+            # The weights matrix is brought to 0 where the weights are less than 0.
+            self.weights = self.weights.at[jax.numpy.where(self.weights < 0)].set(0)
 
     # The method fire implements the Rulkov Map, updating the network nodes.
     def fire(self) -> None:
