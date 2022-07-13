@@ -182,6 +182,40 @@ class RulkovNetwork:
             # The weights matrix is brought to 0 where the weights are less than 0.
             self.weights = self.weights.at[jax.numpy.where(self.weights < 0)].set(0)
 
+    # The method save weights saves the weights matrix to the sqlite db.
+    def save_weights(self) -> None:
+        # The connection to a sqlite file in a directory named after the simulation_id is opened or created if doesnt exist.
+        conn = sqlite3.connect(f'simulations_data/{self.simulation_id}.db')
+        # The cursor is created.
+        c = conn.cursor()
+        # The table Weights is created if it does not exist.
+        c.execute('''CREATE TABLE IF NOT EXISTS Weights (
+            start_neuron_idx INTEGER,
+            end_neuron_idx INTEGER,
+            connection_weight REAL
+        )''')
+
+
+        # row_idx is a matrix of the same shape as weights where each row is the index of the row.
+        row_idx = jax.numpy.repeat(jax.numpy.arange(self.n).reshape((self.n, 1)), self.n, axis=1)
+        # col_idx is a matrix of the same shape as weights where each column is the index of the column.
+        col_idx = row_idx.T
+        # The weights_data array is nx3
+        # The first column is row_idx flattened.
+        # The second column is col_idx flattened.
+        # The third column is the weights matrix flattened.
+        weights_data = jax.numpy.array([row_idx.flatten(), col_idx.flatten(), self.weights.flatten()]).T
+        # The weights_data is inserted into the Weights table.
+        weights_data = weights_data.tolist()
+        c.executemany('''INSERT INTO Weights (start_neuron_idx, end_neuron_idx, connection_weight) VALUES (?, ?, ?)''', weights_data)
+        # The changes are committed.
+        conn.commit()
+        # The connection is closed.
+        conn.close()
+
+
+
+
     # The method fire implements the Rulkov Map, updating the network nodes.
     def fire(self) -> None:
         # the coupling term is the influence of other nodes on the current node.
