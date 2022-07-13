@@ -137,9 +137,10 @@ class RulkovNetwork:
                 self.save_maxima(previous.at[decremented_nodes_greater_than_50].get(), (self.t-1), decremented_nodes_greater_than_50)
                 # The update_maximizers method is called to update the last_t_in_y_max and delta_t arrays.
                 self.update_maximizers(decremented_nodes_greater_than_50)
-                # The update_weights method is called to update the weights of the decremented nodes.
+                # The weights are updated.
                 self.update_weights(decremented_nodes_greater_than_50)
-
+                # The weights are saved in the sqlite file.
+                self.save_weights()
 
             # increment_count is reset to 0 for the neurons in the array neuron_ids.
             self.increment_count = self.increment_count.at[neuron_ids].set(0)
@@ -190,6 +191,7 @@ class RulkovNetwork:
         c = conn.cursor()
         # The table Weights is created if it does not exist.
         c.execute('''CREATE TABLE IF NOT EXISTS Weights (
+            time INTEGER,
             start_neuron_idx INTEGER,
             end_neuron_idx INTEGER,
             connection_weight REAL
@@ -204,7 +206,7 @@ class RulkovNetwork:
         # The first column is row_idx flattened.
         # The second column is col_idx flattened.
         # The third column is the weights matrix flattened.
-        weights_data = jax.numpy.array([row_idx.flatten(), col_idx.flatten(), self.weights.flatten()]).T
+        weights_data = jax.numpy.array([self.t*jax.numpy.ones(self.n, dtype=jax.numpy.int32),row_idx.flatten(), col_idx.flatten(), self.weights.flatten()]).T
         # The weights_data is inserted into the Weights table.
         weights_data = weights_data.tolist()
         c.executemany('''INSERT INTO Weights (start_neuron_idx, end_neuron_idx, connection_weight) VALUES (?, ?, ?)''', weights_data)
@@ -212,9 +214,6 @@ class RulkovNetwork:
         conn.commit()
         # The connection is closed.
         conn.close()
-
-
-
 
     # The method fire implements the Rulkov Map, updating the network nodes.
     def fire(self) -> None:
