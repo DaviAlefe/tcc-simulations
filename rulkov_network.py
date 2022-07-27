@@ -102,7 +102,7 @@ class RulkovNetwork:
         data = jnp.concatenate((neuron_ids.reshape((neuron_ids.shape[0],1)), (t-1)*jnp.ones((neuron_ids.shape[0],1)), maxima), axis=1)
         # transform data to list of lists
         data = data.tolist()
-        print(f'Data to be saved: {data}')
+        print(f'\t {len(data[0])} maxima to save.')
         # The array data is then saved in the table LocalMaxima of the sqlite file, in columns neuron_idx, t, y.
         c.executemany('''INSERT INTO LocalMaxima (neuron_idx, t, y) VALUES (?, ?, ?)''', data)
         # The changes are committed.
@@ -126,14 +126,13 @@ class RulkovNetwork:
     def decrement_procedures(self, neuron_ids: jnp.array, previous) -> None:
         # if neuron_ids is not empty
         if neuron_ids.shape[0] > 0:
-            print(f'\t Decremented nodes: {neuron_ids}')
             # Indices of increment_count greater than 50 are stored in an array.
             increment_count_greater_than_50 = jnp.where(self.increment_count > 50)[0]
             # The intersection of the two arrays is stored in decremented_nodes_greater_than_50.
             decremented_nodes_greater_than_50 = jnp.intersect1d(neuron_ids, increment_count_greater_than_50)
             # If decremented_nodes_greater_than_50 is not empty
             if decremented_nodes_greater_than_50.shape[0] > 0:
-                print(f'\t Decremented nodes greater than 50: {decremented_nodes_greater_than_50}')
+                print(f'\t y variable maxima count: {decremented_nodes_greater_than_50.shape[0]}')
                 # The method save_maxima is called to save the local maximizer of the node in the sqlite db.
                 self.save_maxima(previous.at[decremented_nodes_greater_than_50].get(), (self.t-1), decremented_nodes_greater_than_50)
                 # The update_maximizers method is called to update the last_t_in_y_max and delta_t arrays.

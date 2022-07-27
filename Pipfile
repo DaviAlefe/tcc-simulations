@@ -4,8 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-jax = "*"
 networkx = {extras = ["default"], version = "*"}
+jax = "*"
+jaxlib = "*"
 
 [dev-packages]
 
