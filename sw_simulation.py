@@ -41,4 +41,3 @@ while network.t < T:
         print(f'\t\t {network.t} iterations, {time_elapsed} elapsed.')
         time_remaining = time_elapsed * (T - network.t) / network.t
         print(f'\t\t Approximately {time_remaining} remaining.')
-        print(network.t*'=',(T-network.t)*'-')

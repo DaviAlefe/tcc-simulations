@@ -102,7 +102,6 @@ class RulkovNetwork:
         data = jnp.concatenate((neuron_ids.reshape((neuron_ids.shape[0],1)), (t-1)*jnp.ones((neuron_ids.shape[0],1)), maxima), axis=1)
         # transform data to list of lists
         data = data.tolist()
-        print(f'\t {len(data[0])} maxima to save.')
         # The array data is then saved in the table LocalMaxima of the sqlite file, in columns neuron_idx, t, y.
         c.executemany('''INSERT INTO LocalMaxima (neuron_idx, t, y) VALUES (?, ?, ?)''', data)
         # The changes are committed.
@@ -207,7 +206,8 @@ class RulkovNetwork:
         # The second column is row_idx flattened.
         # The third column is col_idx flattened.
         # The fourth column is the weights matrix flattened.
-        weights_data = jnp.array([self.t*jnp.ones(self.n, dtype=jnp.int32),row_idx.flatten(), col_idx.flatten(), self.weights.flatten()]).T
+        t_array = jnp.repeat(self.t, self.n*self.n).flatten()
+        weights_data = jnp.array([t_array, row_idx.flatten(), col_idx.flatten(), self.weights.flatten()]).T
         # The weights_data is filtered to only include where start_neuron_idx is in the neurons_to_update array.
         weights_data = weights_data[jnp.where(jnp.isin(weights_data[:, 1], neurons_to_update))]
         # The weights_data is inserted into the Weights table.
