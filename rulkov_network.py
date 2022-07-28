@@ -131,7 +131,7 @@ class RulkovNetwork:
             decremented_nodes_greater_than_50 = jnp.intersect1d(neuron_ids, increment_count_greater_than_50)
             # If decremented_nodes_greater_than_50 is not empty
             if decremented_nodes_greater_than_50.shape[0] > 0:
-                print(f'\t y variable maxima count: {decremented_nodes_greater_than_50.shape[0]}')
+                # print(f'\t y variable maxima count: {decremented_nodes_greater_than_50.shape[0]}')
                 # The method save_maxima is called to save the local maximizer of the node in the sqlite db.
                 self.save_maxima(previous.at[decremented_nodes_greater_than_50].get(), (self.t-1), decremented_nodes_greater_than_50)
                 # The update_maximizers method is called to update the last_t_in_y_max and delta_t arrays.
