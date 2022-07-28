@@ -39,8 +39,8 @@ class SWSimulation:
 
             self.network.evolve()
 
-            # Mark time every 500 iterations and predict the time remaining
-            if self.network.t % 500 == 0:
+            # Mark time every 100 iterations and predict the time remaining
+            if self.network.t % 100 == 0:
                 current_time = datetime.now()
                 time_elapsed = current_time - simulation_start
                 print(f'\t\t {self.network.t} iterations, {time_elapsed} elapsed.')
