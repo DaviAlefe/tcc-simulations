@@ -162,20 +162,29 @@ class RulkovNetwork:
             # the delta_w matrix is initialized to zero.
             delta_w = jnp.zeros((self.n, self.n))
 
-            # I is a nxn ones matrix where delta_t is lesser than Ts and 0 otherwise.
-            I = jnp.where(self.delta_t < self.Ts, jnp.ones((self.n, self.n)), jnp.zeros((self.n, self.n)))
+            # low_dt_mask is a nxn ones matrix where delta_t is lesser than Ts and 0 otherwise.
+            low_dt_mask = jnp.where(self.delta_t < self.Ts, jnp.ones((self.n, self.n)), jnp.zeros((self.n, self.n)))
             rel_ampl = ((self.Ap - self.Ad)/self.Ts)
-            # delta_w is set to Ap*I - ((Ap-Ad)/Ts)*delta_t where delta_t is lesser than Ts.
-            new_weights = self.Ap*I - rel_ampl*jnp.abs(self.delta_t.at[jnp.where(self.delta_t < self.Ts)].get())
-            delta_w = delta_w.at[jnp.where(self.delta_t < self.Ts)].set(new_weights.at[jnp.where(self.delta_t < self.Ts)].get())
+            # low_dt_dw is the matrix with weights variations wherever delta_t < Ts.
+            low_dt_dw = self.Ap*low_dt_mask - rel_ampl*jnp.multiply(jnp.abs(self.delta_t), low_dt_mask)
 
-            # I is a nxn ones matrix where delta_t is greater than Ts and 0 otherwise.
-            I = jnp.where(self.delta_t > self.Ts, jnp.ones((self.n, self.n)), jnp.zeros((self.n, self.n)))
-            new_weights = self.Ad*I
-            delta_w = delta_w.at[jnp.where(self.delta_t > self.Ts)].set(new_weights.at[jnp.where(self.delta_t > self.Ts)].get())
+            delta_w = delta_w + low_dt_dw
 
-            # The weights matrix is updated with the delta_w matrix.
-            self.weights = self.weights.at[neurons_to_update].set(self.weights.at[neurons_to_update].get() + delta_w)
+            # high_dt_mask is a nxn ones matrix where delta_t is greater than Ts and 0 otherwise.
+            high_dt_mask = jnp.where(self.delta_t > self.Ts, jnp.ones((self.n, self.n)), jnp.zeros((self.n, self.n)))
+            # high_dt_dw is the matrix with weights variations wherever delta_t > Ts.
+            high_dt_dw = self.Ad * high_dt_mask
+            delta_w = delta_w + high_dt_dw
+
+            # the neurons_mask is a nxn matrix where the elements with row index in neurons to update are 1 and 0 otherwise.
+            # Is initialized to a zeros' column matrix.
+            neurons_mask = jnp.zeros((self.n, 1))
+            # Is set to 1 at the indexes of neurons to update.
+            neurons_mask = neurons_mask.at[neurons_to_update, [0]].set(1)
+            # Is repeated to a nxn matrix.
+            neurons_mask = neurons_mask.T.repeat(self.n, axis=0).T
+            # The weights matrix is updated with the delta_w matrix, at the neurons to update.
+            self.weights = jnp.multiply((self.weights + delta_w), neurons_mask)
 
             # The weights matrix is brought to w_max where the weights are greater than w_max.
             self.weights = self.weights.at[jnp.where(self.weights > self.w_max)].set(self.w_max)
