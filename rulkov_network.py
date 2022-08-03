@@ -3,6 +3,7 @@ import jax
 import jax.numpy as jnp
 import sqlite3
 from datetime import datetime
+import os
 
 
 # A Rulkov network is initialized by an nxn adjacency matrix given by a jax array.
@@ -61,6 +62,13 @@ class RulkovNetwork:
         # The most recent interval between y maxima for each pair of neurons are initialized to 0.
         self.delta_t = jnp.zeros((self.n, self.n))
 
+        # The method assert_dir is called
+        self.assert_dir()
+
+    # The method assert_dir checks if the directory simulations_data exists and if not, it is created.
+    def assert_dir(self) -> None:
+        if not os.path.exists('./simulations_data'):
+            os.makedirs('./simulations_data')
     
     # The method save_nodes saves the nodes of the network in a sqlite file in the same directory, associated with the current time variable.
     def save_nodes(self) -> None:
@@ -131,7 +139,6 @@ class RulkovNetwork:
             decremented_nodes_greater_than_50 = jnp.intersect1d(neuron_ids, increment_count_greater_than_50)
             # If decremented_nodes_greater_than_50 is not empty
             if decremented_nodes_greater_than_50.shape[0] > 0:
-                # print(f'\t y variable maxima count: {decremented_nodes_greater_than_50.shape[0]}')
                 # The method save_maxima is called to save the local maximizer of the node in the sqlite db.
                 self.save_maxima(previous.at[decremented_nodes_greater_than_50].get(), (self.t-1), decremented_nodes_greater_than_50)
                 # The update_maximizers method is called to update the last_t_in_y_max and delta_t arrays.
