@@ -7,8 +7,9 @@ import logging
 
 
 class SWSimulation:
-    def __init__(self, w_0_mult):
+    def __init__(self, w_0_mult, base_dir='.'):
         self.simulation_id=f'simulation_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
+        self.base_dir = base_dir
 
         # Network Parameters
         self.N = 100
@@ -31,7 +32,7 @@ class SWSimulation:
         # Logging
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s',
         force=True,
-        handlers = [logging.FileHandler(f'./simulations_data/{self.simulation_id}.log'), logging.StreamHandler()])
+        handlers = [logging.FileHandler(f'{base_dir}/simulations_data/{self.simulation_id}.log'), logging.StreamHandler()])
         # Log the simulation parameters
         logging.info(f'Simulation parameters:')
         logging.info(str(self.__dict__))
