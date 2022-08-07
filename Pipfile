@@ -7,6 +7,7 @@ name = "pypi"
 networkx = {extras = ["default"], version = "*"}
 jax = "*"
 jaxlib = "*"
+asyncio = "*"
 
 [dev-packages]
 
