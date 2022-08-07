@@ -25,13 +25,15 @@ class RulkovNetwork:
 
     # The constructor for the RulkovNetwork class.
     # The default value of simulation_id is simulation_ current datetime
-    def __init__(self, adjacency_matrix, w_max, w_0, simulation_id=f'simulation_{datetime.now().strftime("%Y%m%d_%H%M%S")}'):
+    def __init__(self, adjacency_matrix, w_max, w_0, simulation_id=f'simulation_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
+    base_dir = '.'):
         self.adjacency_matrix = adjacency_matrix
         self.n = adjacency_matrix.shape[0]
         self.average_connectivity = 0 if jnp.sum(self.adjacency_matrix) == 0 else (self.n/jnp.sum(self.adjacency_matrix))
         self.w_max = w_max
         self.w_0 = w_0
         self.simulation_id = simulation_id
+        self.base_dir = base_dir
 
         # An attribute of this class is the matrix for weights of the network, initialized to be equal to w_0 everywhere.
         self.weights = jnp.ones((self.n, self.n)) * w_0
@@ -67,13 +69,13 @@ class RulkovNetwork:
 
     # The method assert_dir checks if the directory simulations_data exists and if not, it is created.
     def assert_dir(self) -> None:
-        if not os.path.exists('./simulations_data'):
-            os.makedirs('./simulations_data')
+        if not os.path.exists(f'{self.base_dir}/simulations_data'):
+            os.makedirs(f'{self.base_dir}/simulations_data')
     
     # The method save_nodes saves the nodes of the network in a sqlite file in the same directory, associated with the current time variable.
     def save_nodes(self) -> None:
         # The connection to a sqlite file in a directory named after the simulation_id is opened or created if doesnt exist.
-        conn = sqlite3.connect(f'simulations_data/{self.simulation_id}.db')
+        conn = sqlite3.connect(f'{self.base_dir}/simulations_data/{self.simulation_id}.db')
         # The cursor is created.
         c = conn.cursor()
         # The table variables is created if it does not exist.
@@ -97,7 +99,7 @@ class RulkovNetwork:
     # The method save_maxima takes the local maximizers as input and saves the nodes' y variable in the table LocalMaxima in the sqlite db, associated with the node id and time variable.
     def save_maxima(self, maxima: jnp.array, t: int, neuron_ids: jnp.array) -> None:
         # The connection to a sqlite file in a directory named after the simulation_id is opened or created if doesnt exist.
-        conn = sqlite3.connect(f'simulations_data/{self.simulation_id}.db')
+        conn = sqlite3.connect(f'{self.base_dir}/simulations_data/{self.simulation_id}.db')
         # The cursor is created.
         c = conn.cursor()
         # The table LocalMaxima is created if it does not exist.
@@ -201,7 +203,7 @@ class RulkovNetwork:
     # The method save weights saves the weights matrix to the sqlite db.
     def save_weights(self, neurons_to_update: jnp.array) -> None:
         # The connection to a sqlite file in a directory named after the simulation_id is opened or created if doesnt exist.
-        conn = sqlite3.connect(f'simulations_data/{self.simulation_id}.db')
+        conn = sqlite3.connect(f'{self.base_dir}/simulations_data/{self.simulation_id}.db')
         # The cursor is created.
         c = conn.cursor()
         # The table Weights is created if it does not exist.
