@@ -30,7 +30,8 @@ class SWSimulation:
 
         # Logging
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s',
-        filename=f'./simulations_data/{self.simulation_id}.log', filemode='w', force=True)
+        force=True,
+        handlers = [logging.FileHandler(f'./simulations_data/{self.simulation_id}.log'), logging.StreamHandler()])
         # Log the simulation parameters
         logging.info(f'Simulation parameters:')
         logging.info(str(self.__dict__))
@@ -57,3 +58,4 @@ class SWSimulation:
                 logging.info(f'\t\t {self.network.t} iterations, {time_elapsed} elapsed.')
                 time_remaining = time_elapsed * (self.T - self.network.t) / self.network.t
                 logging.info(f'\t\t Approximately {time_remaining} remaining.')
+        return "done"
