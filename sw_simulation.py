@@ -3,7 +3,7 @@ from networkx import watts_strogatz_graph
 import networkx as nx
 from rulkov_network import RulkovNetwork
 from datetime import datetime
-import logging
+import logging, sys
 
 
 class SWSimulation:
@@ -32,7 +32,7 @@ class SWSimulation:
         # Logging
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s',
         force=True,
-        handlers = [logging.FileHandler(f'{base_dir}/simulations_data/{self.simulation_id}.log'), logging.StreamHandler()])
+        handlers = [logging.FileHandler(f'{base_dir}/simulations_data/{self.simulation_id}.log'), logging.StreamHandler(sys.stdout)])
         # Log the simulation parameters
         logging.info(f'Simulation parameters:')
         logging.info(str(self.__dict__))
