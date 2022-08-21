@@ -8,6 +8,8 @@ networkx = {extras = ["default"], version = "*"}
 jax = "*"
 jaxlib = "*"
 asyncio = "*"
+pyodbc = "*"
+ipykernel = "*"
 
 [dev-packages]
 
