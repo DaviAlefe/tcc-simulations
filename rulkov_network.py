@@ -253,7 +253,7 @@ class RulkovNetwork:
     # The method fire implements the Rulkov Map, updating the network nodes.
     def fire(self) -> None:
         # the coupling term is the influence of other nodes on the current node.
-        coupling = - self.average_connectivity * jnp.multiply((self.nodes_x - jnp.ones((self.n,1))), jnp.diagonal(jnp.matmul(self.adjacency_matrix, self.weights.T)).reshape(-1,1))
+        coupling = - self.average_connectivity * (self.nodes_x - jnp.ones((self.n,1))) * jnp.matmul(jnp.matmul(self.adjacency_matrix, self.weights.T), jnp.heaviside(self.nodes_x, 0))
         # nodes_x is updated to \frac{\alpha}{2+x_n^2}+y_n+I_i,t
         self.nodes_x = self.alpha/(1+jnp.square(self.nodes_x)) + self.nodes_y + coupling
         # nodes_y is updated to y_n- \sigma x_n - \beta
