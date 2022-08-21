@@ -12,7 +12,7 @@ class SWSimulation:
         self.base_dir = base_dir
 
         # Network Parameters
-        self.N = 100
+        self.N = 10
         self.k = 4
         self.p = 0.2
 

@@ -26,7 +26,7 @@ class RulkovNetwork:
     # The constructor for the RulkovNetwork class.
     # The default value of simulation_id is simulation_ current datetime
     def __init__(self, adjacency_matrix, w_max, w_0, simulation_id=f'simulation_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
-    base_dir = '.'):
+    base_dir = '.', save_weights_mode=True, save_nodes_mode=True):
         self.adjacency_matrix = adjacency_matrix
         self.n = adjacency_matrix.shape[0]
         self.average_connectivity = 0 if jnp.sum(self.adjacency_matrix) == 0 else (self.n/jnp.sum(self.adjacency_matrix))
@@ -34,6 +34,8 @@ class RulkovNetwork:
         self.w_0 = w_0
         self.simulation_id = simulation_id
         self.base_dir = base_dir
+        self.save_weights_mode = save_weights_mode
+        self.save_nodes_mode = save_nodes_mode
 
         # An attribute of this class is the matrix for weights of the network, initialized to be equal to w_0 everywhere.
         self.weights = jnp.ones((self.n, self.n)) * w_0
@@ -148,7 +150,8 @@ class RulkovNetwork:
                 # The weights are updated.
                 self.update_weights(decremented_nodes_greater_than_50)
                 # The weights are saved in the sqlite file.
-                self.save_weights(decremented_nodes_greater_than_50)
+                if self.save_weights_mode:
+                    self.save_weights(decremented_nodes_greater_than_50)
 
             # increment_count is reset to 0 for the neurons in the array neuron_ids.
             self.increment_count = self.increment_count.at[neuron_ids].set(0)
@@ -257,4 +260,5 @@ class RulkovNetwork:
         # The watch_increments method is called to account for the increment count for each node if the y variable increases in a streak.
         self.watch_increments(previous_y)
         # The new values of the nodes are saved in the sqlite file.
-        self.save_nodes()
+        if self.save_nodes_mode:
+            self.save_nodes()

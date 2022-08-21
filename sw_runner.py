@@ -11,7 +11,7 @@ def run_simulation(w0_mult):
 
 async def main():
     # asynchronously run the simulation for a range of w_0_mult values from 0.1 to 1.0
-    w0_mult_range = jnp.linspace(0.1, 1.0, num=10)
+    w0_mult_range = [0.1]#jnp.linspace(0.1, 1.0, num=10)
     tasks = await asyncio.gather(*[run_simulation(w0_mult) for w0_mult in w0_mult_range])
     print(tasks)
 
