@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import jax
 import jax.numpy as jnp
+import numpy as np
 import sqlite3
 from datetime import datetime
 import os
@@ -26,7 +27,7 @@ class RulkovNetwork:
     # The constructor for the RulkovNetwork class.
     # The default value of simulation_id is simulation_ current datetime
     def __init__(self, adjacency_matrix, w_max, w_0, simulation_id=f'simulation_{datetime.now().strftime("%Y%m%d_%H%M%S")}',
-    base_dir = '.', save_weights_mode=True, save_nodes_mode=True):
+    base_dir = '.', save_weights_mode=True, save_nodes_mode=True, save_maxima_mode=True):
         self.adjacency_matrix = adjacency_matrix
         self.n = adjacency_matrix.shape[0]
         self.average_connectivity = 0 if jnp.sum(self.adjacency_matrix) == 0 else (self.n/jnp.sum(self.adjacency_matrix))
@@ -36,6 +37,7 @@ class RulkovNetwork:
         self.base_dir = base_dir
         self.save_weights_mode = save_weights_mode
         self.save_nodes_mode = save_nodes_mode
+        self.save_maxima_mode = save_maxima_mode
 
         # An attribute of this class is the matrix for weights of the network, initialized to be equal to w_0 everywhere.
         self.weights = jnp.ones((self.n, self.n)) * w_0
@@ -144,7 +146,8 @@ class RulkovNetwork:
             # If decremented_nodes_greater_than_50 is not empty
             if decremented_nodes_greater_than_50.shape[0] > 0:
                 # The method save_maxima is called to save the local maximizer of the node in the sqlite db.
-                self.save_maxima(previous.at[decremented_nodes_greater_than_50].get(), (self.t-1), decremented_nodes_greater_than_50)
+                if self.save_maxima_mode:
+                    self.save_maxima(previous.at[decremented_nodes_greater_than_50].get(), (self.t-1), decremented_nodes_greater_than_50)
                 # The update_maximizers method is called to update the last_t_in_y_max and delta_t arrays.
                 self.update_maximizers(decremented_nodes_greater_than_50)
                 # The weights are updated.
@@ -203,6 +206,9 @@ class RulkovNetwork:
             # The weights matrix is brought to 0 where the weights are less than 0.
             self.weights = self.weights.at[jnp.where(self.weights < 0)].set(0)
 
+            # The weights matrix is masked by the adjacency matrix.
+            self.weights = jnp.multiply(self.weights, self.adjacency_matrix)
+
     # The method save weights saves the weights matrix to the sqlite db.
     def save_weights(self, neurons_to_update: jnp.array) -> None:
         # The connection to a sqlite file in a directory named after the simulation_id is opened or created if doesnt exist.
@@ -238,6 +244,11 @@ class RulkovNetwork:
         conn.commit()
         # The connection is closed.
         conn.close()
+
+    # The method save_weights_matrix gets a directory path and saves the weights matrix to a .npy file.
+    def save_weights_matrix(self, dir_path: str) -> None:
+        # The weights matrix is saved to a .npy file.
+        jnp.save(f'{dir_path}/{self.t}_weights_{self.simulation_id}.npy', self.weights)
 
     # The method fire implements the Rulkov Map, updating the network nodes.
     def fire(self) -> None:
