@@ -39,8 +39,8 @@ class RulkovNetwork:
         self.save_nodes_mode = save_nodes_mode
         self.save_maxima_mode = save_maxima_mode
 
-        # An attribute of this class is the matrix for weights of the network, initialized to be equal to w_0 everywhere.
-        self.weights = jnp.ones((self.n, self.n)) * w_0
+        # An attribute of this class is the matrix for weights of the network, initialized to be equal to w_0 in every synapse.
+        self.weights = self.adjacency_matrix * w_0
         # Wheter to freeze the weights or not.
         self.freeze_weights = False
         # The parameters for the weights' update function are the floats Ap, Ad and the int Ts
