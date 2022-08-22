@@ -126,7 +126,9 @@ class SWSimulation:
 
         # Move every file from the simulations_data folder to the simulations_data/{self.simulation_id} folder
         for file in os.listdir(f'{self.base_dir}/simulations_data'):
-            if file.startswith(self.simulation_id):
+            # Move only files, not directories
+            if file.startswith(self.simulation_id) and os.path.isfile(f'{self.base_dir}/simulations_data/{file}'):
                 os.rename(f'{self.base_dir}/simulations_data/{file}', f'{self.base_dir}/simulations_data/{self.simulation_id}/{file}')
 
+            
         return "done"
