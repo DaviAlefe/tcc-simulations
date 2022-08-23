@@ -17,8 +17,12 @@ class SWSimulation:
         self.k = 4
         self.p = 0.2
 
-        self.graph = watts_strogatz_graph(self.N, self.k, self.p)
-        self.adjcency_matrix = jnp.array(nx.to_numpy_matrix(self.graph))
+
+        try:
+            self.load_adj_matrix()
+        except:
+            self.graph = watts_strogatz_graph(self.N, self.k, self.p)
+            self.adjcency_matrix = jnp.array(nx.to_numpy_matrix(self.graph))
 
         self.w_max = 0.2
         self.w_0 = w_0_mult * self.w_max
@@ -39,6 +43,11 @@ class SWSimulation:
         if not os.path.exists(f'{base_dir}/simulations_data/{self.simulation_id}'):
             os.makedirs(f'{base_dir}/simulations_data/{self.simulation_id}')
         self.save_parameters()
+
+    # the load_adj_matrix method
+    def load_adj_matrix(self):
+        path = '/home/davialefe/tcc/simulations/sw_adj_matrix.npy'
+        self.adjcency_matrix = jnp.array(np.load(path))
 
     # Save parameters method
     def save_parameters(self):
