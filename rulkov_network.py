@@ -101,7 +101,7 @@ class RulkovNetwork:
         conn.close()
     
     # The method save_maxima takes the local maximizers as input and saves the nodes' y variable in the table LocalMaxima in the sqlite db, associated with the node id and time variable.
-    def save_maxima(self, maxima: jnp.array, t: int, neuron_ids: jnp.array) -> None:
+    def save_maxima(self, maxima: jnp.array, neuron_ids: jnp.array) -> None:
         # The connection to a sqlite file in a directory named after the simulation_id is opened or created if doesnt exist.
         conn = sqlite3.connect(f'{self.base_dir}/simulations_data/{self.simulation_id}.db')
         # The cursor is created.
@@ -113,7 +113,7 @@ class RulkovNetwork:
             y REAL
         )''')
         # The maxima are concatenated into an array called data, with neuron_ids in first column, time as the second column and repeated for each node and nodes_y at that time as third column.
-        data = jnp.concatenate((neuron_ids.reshape((neuron_ids.shape[0],1)), (t-1)*jnp.ones((neuron_ids.shape[0],1)), maxima), axis=1)
+        data = jnp.concatenate((neuron_ids.reshape((neuron_ids.shape[0],1)), (self.t-1)*jnp.ones((neuron_ids.shape[0],1)), maxima), axis=1)
         # transform data to list of lists
         data = data.tolist()
         # The array data is then saved in the table LocalMaxima of the sqlite file, in columns neuron_idx, t, y.
@@ -147,7 +147,7 @@ class RulkovNetwork:
             if decremented_nodes_greater_than_50.shape[0] > 0:
                 # The method save_maxima is called to save the local maximizer of the node in the sqlite db.
                 if self.save_maxima_mode:
-                    self.save_maxima(previous.at[decremented_nodes_greater_than_50].get(), (self.t-1), decremented_nodes_greater_than_50)
+                    self.save_maxima(previous.at[decremented_nodes_greater_than_50].get(), decremented_nodes_greater_than_50)
                 # The update_maximizers method is called to update the last_t_in_y_max and delta_t arrays.
                 self.update_maximizers(decremented_nodes_greater_than_50)
                 # The weights are updated.
@@ -253,7 +253,7 @@ class RulkovNetwork:
     # The method fire implements the Rulkov Map, updating the network nodes.
     def fire(self) -> None:
         # the coupling term is the influence of other nodes on the current node.
-        coupling = - self.average_connectivity * (self.nodes_x - jnp.ones((self.n,1))) * jnp.matmul(jnp.matmul(self.adjacency_matrix, self.weights.T), jnp.heaviside(self.nodes_x, 0))
+        coupling = - self.average_connectivity * (self.nodes_x - jnp.ones((self.n,1))) * jnp.matmul(jnp.multiply(self.adjacency_matrix.T, self.weights.T), jnp.heaviside(self.nodes_x, 0))
         # nodes_x is updated to \frac{\alpha}{2+x_n^2}+y_n+I_i,t
         self.nodes_x = self.alpha/(1+jnp.square(self.nodes_x)) + self.nodes_y + coupling
         # nodes_y is updated to y_n- \sigma x_n - \beta
