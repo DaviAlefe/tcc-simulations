@@ -57,7 +57,8 @@ class SWSimulation:
         # save the simulation dict, except self.graph, in a file
         with open(f'{self.base_dir}/simulations_data/{self.simulation_id}.json', 'w') as f:
             dict_to_save = self.__dict__.copy()
-            dict_to_save.pop('graph')
+            if 'graph' in dict_to_save:
+                dict_to_save.pop('graph')
             # set the rulkov network key to be the serializable objets in rulkov network's __dict__
             rulkov_network_dict = self.network.__dict__.copy()
             # turn every np or jnp array in the rulkov network dict to lists
