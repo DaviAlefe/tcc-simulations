@@ -46,7 +46,7 @@ class SWSimulation:
 
     # the load_adj_matrix method
     def load_adj_matrix(self):
-        path = '/home/davialefe/tcc/simulations/sw_adj_matrix.npy'
+        path = f'{self.base_dir}/sw_adj_matrix.npy'
         self.adjcency_matrix = jnp.array(np.load(path))
 
     # Save parameters method
