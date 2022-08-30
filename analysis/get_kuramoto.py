@@ -1,5 +1,5 @@
-import os, json, sqlite3
-import pandas, pandasql, numpy as np
+import os, sqlite3
+import pandas, numpy as np
 
 simulations_data_path = '/home/davialefe/tcc/simulations/simulations_data'
 analysis_db_path = '/home/davialefe/tcc/simulations/analysis/data.db'
