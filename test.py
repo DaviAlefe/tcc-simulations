@@ -8,6 +8,7 @@ adj_matrix = np.array([[0, 1, 1, 1],
                             [1, 1, 0, 1],
                                 [1, 1, 1, 0]])
 
+
 # create the delta_t 4x4 matrix as a numpy array with random positive floats
 delta_t = np.random.rand(4, 4)
 w_max = 0.2

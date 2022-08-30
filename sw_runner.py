@@ -6,6 +6,7 @@ import jax.numpy as jnp
 def run_simulation(w0_mult, s_id):
     print(f'{w0_mult} started')
     sim = SWSimulation(w_0_mult=w0_mult, simulation_id=s_id)
+
     sim.run()
     print(f'{w0_mult} finished')
 
@@ -18,3 +19,4 @@ async def main():
 if __name__ == '__main__':
     # asyncio.run(main())
     run_simulation(0.3, s_id='test')
+
