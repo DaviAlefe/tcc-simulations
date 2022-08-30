@@ -8,8 +8,8 @@ import logging, sys, json, os
 
 
 class SWSimulation:
-    def __init__(self, w_0_mult, base_dir='.'):
-        self.simulation_id=f'simulation_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
+    def __init__(self, w_0_mult, simulation_id = None, base_dir='.'):
+        self.simulation_id= simulation_id if simulation_id else f'simulation_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
         self.base_dir = base_dir
 
         # Network Parameters
@@ -32,7 +32,7 @@ class SWSimulation:
 
         # Simulation Parameters
         self.transient = 1e4
-        self.T = 1.5e6
+        self.T = 1.2e4#1.5e6
 
         # Logging
         logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s',
@@ -103,6 +103,10 @@ class SWSimulation:
                 logging.info(f'\t\t {self.network.t} iterations, {time_elapsed} elapsed.')
                 time_remaining = time_elapsed * (self.T - self.network.t) / self.network.t
                 logging.info(f'\t\t Approximately {time_remaining} remaining.')
+
+                print(f'\t\t Freeze weights state: {self.network.freeze_weights}')
+                print(f'\t\t Mean weight: {np.sum(self.network.weights)/(0.2*np.sum(self.network.adjacency_matrix))}')
+                print(f'\t\t Mean delta t: {np.sum(np.abs(self.network.delta_t))/np.count_nonzero(self.network.delta_t)}')
             
             
             # Save the network weights at t=2e4

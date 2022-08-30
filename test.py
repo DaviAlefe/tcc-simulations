@@ -1,15 +1,16 @@
 import os, sqlite3
+import numpy as np
+from rulkov_network import RulkovNetwork
 
-simulations_data_path = '/home/davialefe/tcc/simulations/simulations_data'
-# for each folder in simulations_data, open the .db file and delete the InitialKuramoto and FinalKuramoto tables
-for _ in os.listdir(simulations_data_path):
-    if os.path.isdir(os.path.join(simulations_data_path, _)):
-        db_name = [filename for filename in os.listdir(os.path.join(simulations_data_path, _))  if \
-            filename.endswith('.db')][0]
-        if db_name:
-            db_path = os.path.join(simulations_data_path, _, db_name)
-            conn = sqlite3.connect(db_path)
-            conn.execute('DROP TABLE IF EXISTS InitialKuramoto')
-            conn.execute('DROP TABLE IF EXISTS FinalKuramoto')
-            conn.commit()
-            conn.close()
+# create a 4x4 adjacency matrix
+adj_matrix = np.array([[0, 1, 1, 1],
+                          [1, 0, 1, 1],
+                            [1, 1, 0, 1],
+                                [1, 1, 1, 0]])
+
+# create the delta_t 4x4 matrix as a numpy array with random positive floats
+delta_t = np.random.rand(4, 4)
+w_max = 0.2
+# create a rulkov network object
+network = RulkovNetwork(adj_matrix, w_max, 0.1, simulation_id='test', save_weights_mode=False, save_nodes_mode=False, save_maxima_mode=False)
+network.delta_t = delta_t

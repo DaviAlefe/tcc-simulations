@@ -178,7 +178,7 @@ class RulkovNetwork:
             delta_w = jnp.zeros((self.n, self.n))
 
             # low_dt_mask is a nxn ones matrix where delta_t is lesser than Ts and 0 otherwise.
-            low_dt_mask = jnp.where(self.delta_t < self.Ts, jnp.ones((self.n, self.n)), jnp.zeros((self.n, self.n)))
+            low_dt_mask = jnp.where(jnp.abs(self.delta_t) < self.Ts, jnp.ones((self.n, self.n)), jnp.zeros((self.n, self.n)))
             rel_ampl = ((self.Ap - self.Ad)/self.Ts)
             # low_dt_dw is the matrix with weights variations wherever delta_t < Ts.
             low_dt_dw = self.Ap*low_dt_mask - rel_ampl*jnp.multiply(jnp.abs(self.delta_t), low_dt_mask)
@@ -186,7 +186,7 @@ class RulkovNetwork:
             delta_w = delta_w + low_dt_dw
 
             # high_dt_mask is a nxn ones matrix where delta_t is greater than Ts and 0 otherwise.
-            high_dt_mask = jnp.where(self.delta_t > self.Ts, jnp.ones((self.n, self.n)), jnp.zeros((self.n, self.n)))
+            high_dt_mask = jnp.where(jnp.abs(self.delta_t) > self.Ts, jnp.ones((self.n, self.n)), jnp.zeros((self.n, self.n)))
             # high_dt_dw is the matrix with weights variations wherever delta_t > Ts.
             high_dt_dw = self.Ad * high_dt_mask
             delta_w = delta_w + high_dt_dw
@@ -199,7 +199,7 @@ class RulkovNetwork:
             # Is repeated to a nxn matrix.
             neurons_mask = neurons_mask.T.repeat(self.n, axis=0).T
             # The weights matrix is updated with the delta_w matrix, at the neurons to update.
-            self.weights = jnp.multiply((self.weights + delta_w), neurons_mask)
+            self.weights = self.weights + jnp.multiply(delta_w, neurons_mask)
 
             # The weights matrix is brought to w_max where the weights are greater than w_max.
             self.weights = self.weights.at[jnp.where(self.weights > self.w_max)].set(self.w_max)
