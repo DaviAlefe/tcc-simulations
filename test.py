@@ -1,18 +1,15 @@
-from rulkov_network import RulkovNetwork
-import jax.numpy as jnp
+import os, sqlite3
 
-
-adjacency_matrix=jnp.array([[0, 1, 0, 0], [1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 0]])
-# adjacency_matrix=jnp.array([[0]])
-network = RulkovNetwork(adjacency_matrix, w_max=0.1, w_0=0.1)
-# network.nodes_x = jnp.array([[1]])
-# network.nodes_y = jnp.array([[-1]])
-# network.nodes = jnp.concatenate((network.nodes_x, network.nodes_y), axis=1)
-# network.alpha = jnp.array([[4.1]])
-
-while network.t < 10:
-    network.update_weights([1])
-    network.t +=1
-    print(f'Iteration {network.t}')
-    print(f'\t Nodes: {network.nodes}')
-    print(f'\t increment_count: {network.increment_count}')
+simulations_data_path = '/home/davialefe/tcc/simulations/simulations_data'
+# for each folder in simulations_data, open the .db file and delete the InitialKuramoto and FinalKuramoto tables
+for _ in os.listdir(simulations_data_path):
+    if os.path.isdir(os.path.join(simulations_data_path, _)):
+        db_name = [filename for filename in os.listdir(os.path.join(simulations_data_path, _))  if \
+            filename.endswith('.db')][0]
+        if db_name:
+            db_path = os.path.join(simulations_data_path, _, db_name)
+            conn = sqlite3.connect(db_path)
+            conn.execute('DROP TABLE IF EXISTS InitialKuramoto')
+            conn.execute('DROP TABLE IF EXISTS FinalKuramoto')
+            conn.commit()
+            conn.close()

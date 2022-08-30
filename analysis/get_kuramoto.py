@@ -1,63 +1,44 @@
-import sqlite3
-import numpy as np
-import pandas as pd
-from pandasql import sqldf
-from itertools import product
+import os, json, sqlite3
+import pandas, pandasql, numpy as np
 
+simulations_data_path = '/home/davialefe/tcc/simulations/simulations_data'
+analysis_db_path = '/home/davialefe/tcc/simulations/analysis/data.db'
 
-def get_kuramoto(db_path, t_start, t_end, n_nodes):
-    print(db_path)
-    con = sqlite3.connect(db_path)
-    df = pd.read_sql('SELECT * FROM LocalMaxima',con)
-    initial_df = pd.DataFrame(list(product(np.arange(n_nodes),np.arange(t_start-500,t_end + 500))),columns=['neuron_id','t'])
-    query = '''
-    WITH j AS 
-    (SELECT *
-    FROM initial_df i
-    LEFT JOIN
-    (SELECT neuron_idx, t AS t_burst
-    FROM df) r
-    ON i.t = r.t_burst AND i.neuron_id = r.neuron_idx)
+def get_kuramoto(simulation_id):
+    # get the path to the .db file inside the folder
+    db_name = [filename for filename in os.listdir(os.path.join(simulations_data_path, simulation_id))  if \
+        filename.endswith('.db')][0]
+    if db_name:
+        db_path = os.path.join(simulations_data_path, simulation_id, db_name)
+    # open the .db file
+    conn = sqlite3.connect(db_path)
+    # get the phases from the InitialWindow table
+    initial_window = pandas.read_sql_query('SELECT neuron_id, t, phi FROM InitialWindow', conn)
+    # get the phases from the FinalWindow table
+    final_window = pandas.read_sql_query('SELECT neuron_id, t, phi FROM FinalWindow', conn)
+    # close the connection
+    conn.close()
+    # calculate phasor for the initial window
+    initial_window['phasor'] = np.exp(1j*initial_window['phi'])
+    # calculate phasor for the final window
+    final_window['phasor'] = np.exp(1j*final_window['phi'])
+    # calculate the mean phasor's magnitudes for the initial window grouped by t
+    initial_window_kuramotos = np.abs(initial_window.groupby('t')['phasor'].mean())
+    initial_window_mean_kuramoto = np.mean(initial_window_kuramotos)
+    # calculate the mean phasor's magnitudes for the final window grouped by t
+    final_window_kuramotos = np.abs(final_window.groupby('t')['phasor'].mean())
+    final_window_mean_kuramoto = np.mean(final_window_kuramotos)
 
-    SELECT neuron_id, t, t_burst
-    FROM j
-    '''
-    initial_df = sqldf(query)
-    df_t_next = initial_df.interpolate(method='bfill')
-    df_t_next.rename(columns={'t_burst':'t_next'}, inplace=True)
-    df_t_last = initial_df.interpolate(method='pad')
-    df_t_last.rename(columns={'t_burst':'t_last'}, inplace=True)
-    query = '''
-    WITH j AS
-    (SELECT *
-    FROM df_t_next n
-    LEFT JOIN
-    df_t_last l
-    ON l.neuron_id = n.neuron_id AND l.t = n.t)
+    return (initial_window_mean_kuramoto, final_window_mean_kuramoto)
+    
 
-    SELECT neuron_id, t, t_last, t_next
-    FROM j
-    '''
-
-    initial_df = sqldf(query)
-
-    query = '''
-    SELECT neuron_id, t, t_last, t_next,
-    (DENSE_RANK() OVER (
-    PARTITION BY neuron_id
-    ORDER BY t_last ASC
-    )
-     ) AS burst_num
-    FROM initial_df
-    '''
-
-    initial_df = sqldf(query)
-
-    query = f'''
-    SELECT neuron_id, t, t_last, t_next, burst_num
-    FROM initial_df
-    WHERE t >= {t_start} AND t <= {t_end}
-    '''
-    initial_df = sqldf(query)
-
-    return initial_df
+if __name__ == '__main__':
+    # open the analysis database and get the associations table as a df
+    conn = sqlite3.connect(analysis_db_path)
+    associations = pandas.read_sql_query('SELECT * FROM Associations', conn)
+    # for each simulation_id in the associations table, get the initial and final window kuramoto
+    associations['initial_kuramoto'], associations['final_kuramoto'] = zip(*associations['simulation_id'].apply(get_kuramoto))
+    # save the associations table to the analysis database
+    associations.to_sql('associations', conn, if_exists='replace', index=False)
+    # close the connection
+    conn.close()
