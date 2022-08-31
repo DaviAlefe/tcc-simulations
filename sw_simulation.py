@@ -105,7 +105,6 @@ class SWSimulation:
                 logging.info(f'\t\t {self.network.t} iterations, {time_elapsed} elapsed.')
                 time_remaining = time_elapsed * (self.T - self.network.t) / self.network.t
                 logging.info(f'\t\t Approximately {time_remaining} remaining.')
-
             
             
             # Save the network weights at t=2e4
